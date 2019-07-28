@@ -11,7 +11,7 @@ class Boids:
         f = self.compute_force(dt)
         self.move(f, dt)
 
-    def compute_forces(self, dt):
+    def compute_force(self, dt):
         pass
         
     def move(self, forces, dt):
