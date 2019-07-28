@@ -3,19 +3,35 @@ import pandas as pd
 
 class Boids:
     def __init__(self, N, dims=2):
-        self.position = np.array((n,dims), dtype=float)
-        self.velocity = np.array((n,dims), dtype=float)        
-        self.rules = []
+        self.mass = np.ones((n,dims), dtype=float)
+        self.position = np.zeros((n,dims), dtype=float)
+        self.velocity = np.zeros((n,dims), dtype=float)
+        self.force = np.zeros((n,dims), dtype=float)        
+        self.rules = [] 
 
     def update(self, dt):        
-        f = self.compute_force(dt)
-        self.move(f, dt)
+        self.compute_force(dt)
+        self.update_velocity(dt)
+        self.update_position(dt)
 
     def compute_force(self, dt):
-        pass
+        self.force.fill(0)
+
+        for rule in self.rules:
+            self.force += rule(self)
+
+    def update_velocity(self, dt):
+        # f = m * a
+        # f = m * dv / dt
+        # dv = f * dt / m
+        dv = self.force * dt / self.mass
+        self.velocity += dv
         
-    def move(self, forces, dt):
-        pass
+    def move(self, dt):
+        # v = dp / dt
+        # dp = v * dt
+        dp = self.velocity * dt
+        self.position += dp
     
     def add_rule(self, fn):
         pass
