@@ -171,4 +171,4 @@ if __name__ == "__main__":
     matplotlib.use('agg')
     import rendermpl
 
-    rendermpl.render(steps=100, dt=0.02, boids=boids, prefix="/mnt/c/Users/davidf/workspace/boids/test_")
+    rendermpl.render(steps=200, dt=0.02, boids=boids, prefix="/mnt/c/Users/davidf/workspace/boids/test_")
