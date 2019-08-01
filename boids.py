@@ -10,18 +10,20 @@ class Rule:
     def __call__(self, boids, dt):
         self.compute_force(boids, dt)
         
-class AvoidNeighbors(Rule):
+class Separation(Rule):
     def __init__(self, dist, k):
         self.dist = dist
         self.k = k
 
     def compute_force(self, boids, dt):
         new_forces = np.zeros_like(boids.force)
-        
+
         for pair in boids.near_pairs(self.dist):
             i,j = pair
             dp = boids.position[j,:] - boids.position[i,:]
-            df = self.k * dp / np.linalg.norm(dp)
+            d = np.linalg.norm(dp)
+            scale = (self.dist - d) / d
+            df = self.k * dp / d * scale
             new_forces[i] -= df
             new_forces[j] += df
 
@@ -45,7 +47,10 @@ class Align(Rule):
             new_forces[i] += boids.velocity[j]
             new_forces[j] += boids.velocity[i]
 
-        return new_forces / cts / dt
+        nonzero = np.where(cts > 0)
+        new_forces[nonzero,:] /= cts[nonzero, np.newaxis]
+
+        return new_forces
 
 class Cohesion(Rule):
     def __init__(self, dist, k):
@@ -65,13 +70,16 @@ class Cohesion(Rule):
             centroids[i] += boids.position[j]
             centroids[j] += boids.position[i]
 
-        centroids /= cts
+        nonzero = np.where(cts > 0)
+        centroids[nonzero,:] /= cts[nonzero, np.newaxis]
 
         new_forces = np.zeros_like(boids.force)
 
-        for i, centroid in enumerate(centroids):
-            dp = centroid - boids.position[i]
-            new_forces[i] = dp / np.linalg.norm(dp) * self.k
+        for i in nonzero[0]:
+            dp = centroids[i] - boids.position[i]
+            mag = np.linalg.norm(dp)
+            if mag > 0:
+                new_forces[i] = dp / mag * self.k
 
         return new_forces
 
@@ -93,14 +101,18 @@ class Boids:
         self.force = np.zeros((N,dims), dtype=float)
 
         
-        self._ssub = scipy.spatial.KDTree(self.position)
+        self._ssub = None
         self._near_pairs = {}
         
         self.rules = rules if rules is not None else []
         self.extent = extent if extent is not None else np.array([[0,1]] * dims, dtype=float)
 
+    def set_position(self, pos):
+        np.copyto(self.position, pos)
+
     def update(self, dt):
         self._near_pairs = {}
+        self._ssub = None
         
         self.compute_force(dt)
         self.update_velocity(dt)
@@ -109,6 +121,9 @@ class Boids:
     def near_pairs(self, max_dist):
         res = self._near_pairs.get(max_dist, None)
 
+        if self._ssub is None:
+            self._ssub = scipy.spatial.KDTree(self.position)
+            
         if res is None:
             res = self._ssub.query_pairs(max_dist)
             self._near_pairs[max_dist] = res
@@ -137,15 +152,23 @@ class Boids:
     
 
 if __name__ == "__main__":
-    boids = Boids(2, dims = 2, rules = [
-        AvoidNeighbors(1,1),
+    N = 400
+    dims = 2
+    
+    boids = Boids(N, dims = dims, rules = [
+        Separation(.1, 1),
         #Drag(.5),
-        #Align(1, 1),
-        Cohesion(1, 1),
+        Align(.1, 1),
+        Cohesion(.1, 2),
     ])
-    boids.position = np.array([[0,0],[0,1]], dtype=float)
 
-    print(boids.position)
-    for i in range(20):
-        boids.update(.1)
-        print(i,boids.position)
+    xx, yy = np.meshgrid(np.linspace(0,1,20), np.linspace(0,1,20))
+    
+    #boids.position = np.random.random((N,dims)).astype(float)
+    boids.set_position(np.array([xx.ravel(), yy.ravel()]).T)
+
+    import matplotlib
+    matplotlib.use('agg')
+    import rendermpl
+
+    rendermpl.render(steps=100, dt=0.02, boids=boids, prefix="/mnt/c/Users/davidf/workspace/boids/test_")
