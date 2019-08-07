@@ -13,13 +13,19 @@ dims = 2
 boids = Boids(N, dims = dims, rules = [
     Separation(.1, 1),
     #Drag(.5),
-    Alignment(.1, 1),
-    Cohesion(.1, 2),
+    Alignment(.1, 4),
+    Cohesion(.1, 4),
 ])
 
-xx, yy = np.meshgrid(np.linspace(0,1,20), np.linspace(0,1,20))
+#xx, yy = np.meshgrid(np.linspace(0,1,20), np.linspace(0,1,20))
+
+#boids.velocity[(yy<.5).ravel(),0] = 1
+#boids.velocity[(yy>=.5).ravel(),0] = -1
     
 #boids.position = np.random.random((N,dims)).astype(float)
-boids.set_position(np.array([xx.ravel(), yy.ravel()]).T)
+boids.set_position(np.random.random((N,2)).astype(float))
+boids.velocity[boids.position[:,1] < 0.5,0] = 1
+boids.velocity[boids.position[:,1] <= 0.5,0] = -1
+
 
 rendermpl.render(steps=200, dt=0.02, boids=boids, prefix="/mnt/c/Users/davidf/workspace/boids/test_")
