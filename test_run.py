@@ -23,9 +23,13 @@ boids = Boids(N, dims = dims, rules = [
 #boids.velocity[(yy>=.5).ravel(),0] = -1
     
 #boids.position = np.random.random((N,dims)).astype(float)
-boids.set_position(np.random.random((N,2)).astype(float))
-boids.velocity[boids.position[:,1] < 0.5,0] = 1
-boids.velocity[boids.position[:,1] <= 0.5,0] = -1
+boids['position'] = np.random.random((N,dims)).astype(float)
 
 
-rendermpl.render(steps=200, dt=0.02, boids=boids, prefix="/mnt/c/Users/davidf/workspace/boids/test_")
+boids['velocity'][boids['position'][:,1] < 0.5,0] = 1
+boids['velocity'][boids['position'][:,1] <= 0.5,0] = -1
+
+render_cb = Boids.callback(rendermpl.render, prefix="/mnt/c/Users/davidf/workspace/boids/test_")
+
+boids.simulate(np.linspace(0.0,1.0,10), callbacks=[render_cb])
+
